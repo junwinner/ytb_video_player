@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ytb_iframe2/video_player_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,6 +57,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  String videoUrl = 'https://www.youtube.com/watch?v=jNI0fiX4q4A';
 
   void _incrementCounter() {
     setState(() {
@@ -85,6 +87,22 @@ class _MyHomePageState extends State<MyHomePage> {
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: GestureDetector(
+              onTap: () => {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VideoPlayerPage(youtubeUrl: videoUrl),
+                  ),
+                )
+              },
+              child: const Icon(Icons.add),
+            ),
+          )
+        ],
       ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
