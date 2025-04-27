@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 class VideoPlayerPage extends StatefulWidget {
+  /// 输入完整 YouTube URL
   final String youtubeUrl;
-  const VideoPlayerPage({Key? key, required this.youtubeUrl}) : super(key: key);
+
+  const VideoPlayerPage({
+    super.key,
+    required this.youtubeUrl,
+  });
 
   @override
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
@@ -11,96 +16,73 @@ class VideoPlayerPage extends StatefulWidget {
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
   late final YoutubePlayerController _controller;
-  Duration _position = Duration.zero;
-  Duration _duration = const Duration(seconds: 0);
-  bool _hasError = false;
-  PlayerState _playerState = PlayerState.unknown;
+
+  /// 字幕列表
+  final List<Map<String, dynamic>> _subtitles = [
+    {"start": 0.0,  "end": 2.5,  "text": "欢迎观看 Flutter 视频示例"},
+    {"start": 2.5,  "end": 5.0,  "text": "本视频演示如何播放 YouTube 视频"},
+    {"start": 5.0,  "end": 8.0,  "text": "以及在下方显示滚动字幕"},
+    {"start": 8.0,  "end": 12.0, "text": "字幕数据以 JSON 形式内置组件中"},
+  ];
+
+
+  // 正则提取 videoId
+  static final _idRegex = RegExp(r'(?<=v=|\/)([0-9A-Za-z_-]{11}).*');
+
+  String _extractId(String url) {
+    final m = _idRegex.firstMatch(url);
+    if (m != null) return m.group(1)!;
+    throw ArgumentError('无法从 URL 提取 videoId');
+  }
 
   @override
   void initState() {
     super.initState();
-
-    // 自动提取并校验 videoId
-    final id = YoutubePlayerController.convertUrlToId(widget.youtubeUrl);
-    if (id == null || id.length != 11) _hasError = true;
-
+    final id = _extractId(widget.youtubeUrl);
     _controller = YoutubePlayerController(
       params: const YoutubePlayerParams(
         showControls: true,
         showFullscreenButton: true,
       ),
-    )..loadVideoById(videoId: 'jNI0fiX4q4A');
-
-
-    // 监听完整播放器状态流（播放/暂停/结束/错误）
-    _controller.stream.listen((value) {
-      print('监听完整播放器状态流 value:$value');
-      setState(() {
-        _playerState = value.playerState;
-        _hasError = value.hasError;
-        print('duration:${value.metaData.duration}');
-        _duration = value.metaData.duration;
-      });
-    });
-    // 监听视频进度与缓冲状态的专用流
-    _controller.videoStateStream.listen((state) {
-      print('监听视频进度与缓冲状态的专用流 position:${state.position}');
-      print('监听视频进度与缓冲状态的专用流 loadedFraction:${state.loadedFraction}');
-      setState(() {
-        _position = state.position;
-      });
-    });
-
+    )..loadVideoById(videoId: id);  // 加载并自动播放视频
   }
 
   @override
   void dispose() {
-    _controller.close();
+    _controller.close();  // 释放底层 WebView 资源
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('YouTube 播放器')),
-      body: _hasError
-          ? const Center(child: Text('无效的 YouTube 链接或加载失败'))
-          : Column(
+      appBar: AppBar(title: const Text('YouTube 播放与字幕')),
+      body: Column(
         children: [
-          YoutubePlayer(controller: _controller, aspectRatio: 16 / 9),
-          const SizedBox(height: 8),
-          IconButton(
-            icon: Icon(
-              _playerState == PlayerState.playing
-                  ? Icons.pause_circle_filled
-                  : Icons.play_circle_filled,
-            ),
-            iconSize: 48,
-            onPressed: () {
-              if (_playerState == PlayerState.playing) {
-                _controller.pauseVideo(); // API 方法pauseVideociteturn5view0
-              } else {
-                _controller.playVideo(); // API 方法playVideociteturn5view0
-              }
-            },
+          // 上部播放器：16:9 固定比例
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: YoutubePlayer(controller: _controller),
           ),
-          Slider(
-            min: 0,
-            max: _duration.inSeconds.toDouble(),
-            value: _position.inSeconds.clamp(0, _duration.inSeconds).toDouble(),
-            onChanged: (v) => _controller.seekTo(
-              seconds: v,
-              allowSeekAhead: true, // API 方法seekTociteturn5view0
+          const Divider(height: 1),
+          // 下部字幕：Expanded + ListView
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: _subtitles.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    _subtitles[index]['text'],
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                );
+              },
             ),
           ),
-          Text('${_format(_position)} / ${_format(_duration)}'),
         ],
       ),
     );
-  }
-
-  String _format(Duration d) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
   }
 }
