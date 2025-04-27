@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -12,7 +13,6 @@ class Subtitle {
   Subtitle({required this.beginSec, required this.endSec, required this.text});
 
   factory Subtitle.fromJson(Map<String, dynamic> json) {
-    // JSON 时间是毫秒，/1000 转为秒
     final beginMs = (json['BeginTime'] as num? ?? 0).toDouble();
     final endMs = (json['EndTime'] as num? ?? 0).toDouble();
     return Subtitle(
@@ -33,26 +33,27 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  YoutubePlayerController? _controller; // 可空，避免未初始化访问
-  final ItemScrollController _itemScrollController = ItemScrollController(); //
+  YoutubePlayerController? _controller;
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   final List<Subtitle> _subtitles = [];
-  int _currentSubtitleIndex = 0;
+  int _currentSubtitleIndex = -1; // 默认没有选中
   bool _isReady = false;
+  Timer? _timer; // 定时器，实时刷新字幕
 
   @override
   void initState() {
     super.initState();
-    _initialize(); // 异步加载字幕并初始化播放器
+    _initialize();
   }
 
   Future<void> _initialize() async {
-    // 1. 从 assets 读取 JSON 文本
+    // 1. 读取字幕
     final jsonString = await rootBundle.loadString('assets/subtitles.json');
-    final data = jsonDecode(jsonString) as List<dynamic>; //
-    _subtitles
-        .addAll(data.map((e) => Subtitle.fromJson(e as Map<String, dynamic>)));
+    final data = jsonDecode(jsonString) as List<dynamic>;
+    _subtitles.addAll(data.map((e) => Subtitle.fromJson(e as Map<String, dynamic>)));
 
-    // 2. 提取 videoId 并创建播放器控制器
+    // 2. 初始化播放器
     final videoId = YoutubePlayerController.convertUrlToId(widget.youtubeUrl)!;
     _controller = YoutubePlayerController.fromVideoId(
       videoId: videoId,
@@ -63,28 +64,47 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ),
     );
 
-    // 3. 监听播放进度，按秒同步滚动字幕
-    _controller!.videoStateStream.listen((state) {
-      final posSec = state.position.inSeconds.toDouble() ?? 0.0;
-      final idx = _subtitles
-          .indexWhere((s) => posSec >= s.beginSec && posSec < s.endSec);
-      if (idx != -1 && idx != _currentSubtitleIndex) {
+    // 3. 每 300ms 检查一次当前播放时间，更新字幕高亮
+    _timer = Timer.periodic(const Duration(milliseconds: 300), (_) async {
+      final pos = await _controller!.currentTime; // 获取当前秒数
+      _updateCurrentSubtitle(pos);
+    });
+
+    // 4. 完成
+    setState(() => _isReady = true);
+  }
+
+  void _updateCurrentSubtitle(double currentSec) {
+    final idx = _subtitles.indexWhere(
+          (s) => currentSec >= s.beginSec && currentSec < s.endSec,
+    );
+    if (idx != -1 && idx != _currentSubtitleIndex) {
+      setState(() {
         _currentSubtitleIndex = idx;
+      });
+
+      // 获取当前可见的项的索引
+      final visibleIndices = _itemPositionsListener.itemPositions.value
+          .map((position) => position.index)
+          .toSet();
+
+      // 如果当前高亮字幕不在可见范围内，或者在可见范围的底部，则滚动
+      if (!visibleIndices.contains(idx) ||
+          visibleIndices.last == idx) {
         _itemScrollController.scrollTo(
           index: idx,
           duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-        ); //
+          curve: Curves.easeInOut,
+          alignment: 0.1, // 将目标项滚动到视图顶部附近
+        );
       }
-    });
-
-    // 4. 标记准备完成并刷新 UI
-    setState(() => _isReady = true);
+    }
   }
 
   @override
   void dispose() {
-    _controller?.close(); // 释放资源
+    _controller?.close();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -94,33 +114,31 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('视频与自动滚动字幕')),
+      appBar: AppBar(title: const Text('视频与高亮滚动字幕')),
       body: Column(
         children: [
-          // 上部：16:9 播放器
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: YoutubePlayer(controller: _controller!), //
+            child: YoutubePlayer(controller: _controller!),
           ),
           const Divider(height: 1),
-          // 下部：可滚动字幕列表
           Expanded(
             child: ScrollablePositionedList.builder(
               itemCount: _subtitles.length,
               itemScrollController: _itemScrollController,
+              itemPositionsListener: _itemPositionsListener,
               itemBuilder: (context, index) {
                 final s = _subtitles[index];
                 final isActive = index == _currentSubtitleIndex;
                 return Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  color: isActive ? Colors.grey.shade200 : null,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  color: isActive ? Colors.yellow.shade100 : Colors.transparent,
                   child: Text(
                     "[${s.beginSec.toStringAsFixed(2)}s] ${s.text}",
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight:
-                          isActive ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      color: isActive ? Colors.blueAccent : Colors.black,
                     ),
                   ),
                 );
