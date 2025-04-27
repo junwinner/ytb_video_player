@@ -329,10 +329,10 @@ packages:
     dependency: "direct main"
     description:
       name: youtube_player_iframe
-      sha256: de19f16c0ecce603e3b95530d64ec0bed2b58057f12ddd9531bc4c06b7b7ccdf
+      sha256: "15ec03bab4b2c2071e427091605456245b58d0d51f0942e7437675b2ff25bc09"
       url: "https://pub.dev"
     source: hosted
-    version: "5.1.5"
+    version: "5.1.2"
   youtube_player_iframe_web:
     dependency: transitive
     description:
