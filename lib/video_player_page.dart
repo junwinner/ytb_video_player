@@ -105,7 +105,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('youtube视频播放')),
+      appBar: AppBar(title: const Text('Youtube视频播放')),
       body: Column(
         children: [
           // 视频播放器
