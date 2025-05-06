@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'add_youtube_url_dialog.dart';
+import 'input_youtube_url_dialog.dart';
 
 class MediaImportView extends StatelessWidget {
   const MediaImportView({super.key});
@@ -10,7 +10,6 @@ class MediaImportView extends StatelessWidget {
     Color subTitleColor = const Color(0xFF8E95A3);
     TextStyle titleStyle = TextStyle(color: titleColor, fontSize: 18);
     TextStyle subTitleStyle = TextStyle(color: subTitleColor, fontSize: 13);
-    String videoUrl = 'https://www.youtube.com/watch?v=jNI0fiX4q4A';
     return Stack(
       children: [
         Padding(
