@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ytb_iframe2/video_player_page.dart';
+import 'add_youtube_url_dialog.dart';
 
 class MediaImportView extends StatelessWidget {
   const MediaImportView({super.key});
@@ -50,13 +50,11 @@ class MediaImportView extends StatelessWidget {
                     titleStyle: titleStyle,
                     subTitleStyle: subTitleStyle,
                     onTap: () {
-                      print('点击youtube网址');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VideoPlayerPage(youtubeUrl: videoUrl),
-                        ),
-                      );
+                      Navigator.pop(context);
+                      showDialog(
+                        context: context,
+                        builder: (context) => const AddYoutubeUrlDialog(),
+                      );                      // Navigator.push(
                     },
                   ),
                   const SizedBox(height: 16),
