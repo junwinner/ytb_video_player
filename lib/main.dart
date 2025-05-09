@@ -61,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.only(right: 10),
             child: GestureDetector(
               onTap: () => {
-              _showBottomSheet(context)
+                _showBottomSheet(context)
               },
               child: const Icon(Icons.add),
             ),
@@ -79,6 +79,20 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
+            const SizedBox(height: 20),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              Text(
+                'ログインすることで、「ユーザー契約」と「プライバシー契約」を読んで同意したことになります。',
+              ),
+              Text(
+                '언제든지 몰입형 영어 학습을 시작하세요:',
+              ),
+              Text(
+                '发佛教啊家哦屁:',
+              ),
+            ],)
           ],
         ),
       ),
